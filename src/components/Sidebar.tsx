@@ -13,7 +13,8 @@ import {
   Package,
   Sparkles,
   Users,
-  Video
+  Video,
+  X
 } from 'lucide-react';
 import React from 'react';
 import type { AdminUser } from '../types';
@@ -33,6 +34,9 @@ interface SidebarProps {
   configSubTab: ConfigSubTab;
   setConfigSubTab: (tab: ConfigSubTab) => void;
   loadTemplates: () => Promise<void>;
+  /** Layout mode: desktop = persistent sidebar, tablet = rail + overlay, mobile = drawer. */
+  mode?: 'desktop' | 'tablet' | 'mobile';
+  onCloseNav?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -47,12 +51,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCollapsed,
   configSubTab,
   setConfigSubTab,
-  loadTemplates
+  loadTemplates,
+  mode = 'desktop',
+  onCloseNav
 }) => {
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
   return (
-    <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside id="app-sidebar" className={`app-sidebar ${collapsed ? 'collapsed' : ''}`} aria-label="Main navigation">
       {/* Brand Header */}
       <div className="sidebar-brand-wrapper">
         <div
@@ -71,14 +77,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
-        <button
-          type="button"
-          className="sidebar-collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-        </button>
+        {mode === 'mobile' ? (
+          <button
+            type="button"
+            className="sidebar-drawer-close"
+            onClick={onCloseNav}
+            aria-label="Close navigation"
+            title="Close navigation"
+          >
+            <X size={18} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            aria-controls="app-sidebar"
+          >
+            {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
+        )}
       </div>
 
       {/* Backend Status indicator */}
@@ -173,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {!collapsed && (
                   <div className="nav-content">
                     <span className="nav-label">Demo Requests</span>
-                    <span className="nav-desc">Book a Demo bookings</span>
+                    <span className="nav-desc">Customer demo bookings</span>
                   </div>
                 )}
               </button>

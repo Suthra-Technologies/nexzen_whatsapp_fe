@@ -69,6 +69,15 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
     setActionMenuOpenId(null);
   };
 
+  // Products arrive here with `icon` swapped for its component (see App.tsx), but the backend
+  // stores icon *names*. Sending the component would serialize to {} and wipe the product's
+  // icon, so always save/edit using the stored name (undefined when none is stored).
+  const toIconName = (product: any): string | undefined => {
+    if (typeof product.iconName === 'string' && ICON_MAP[product.iconName]) return product.iconName;
+    if (typeof product.icon === 'string' && ICON_MAP[product.icon]) return product.icon;
+    return undefined;
+  };
+
   const handleToggleFeatured = async (product: any) => {
     const willBeFeatured = !product.isFeatured;
     if (willBeFeatured) {
@@ -85,6 +94,8 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
           ...product,
+          icon: toIconName(product),
+          iconName: undefined,
           isFeatured: willBeFeatured
         })
       });
@@ -193,7 +204,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
           </div>
         </div>
         {!editingProductId && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div className="rs-actions">
             <a
               href="/services"
               target="_blank"
@@ -215,7 +226,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
             </a>
           <button
             type="button"
-            className="btn-add-service"
+            className="btn-add-service rs-primary"
             onClick={() => {
               setEditingProductId('new');
               setProdFormId('prod_' + Math.random().toString(36).substr(2, 5));
@@ -461,7 +472,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
           </div>
 
           <div className="products-table-wrapper">
-            <table className="config-table">
+            <table className="config-table rs-card-table">
               <thead>
                 <tr>
                   <th style={{ width: '220px' }}>Service</th>
@@ -474,7 +485,8 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
               </thead>
               <tbody>
                 {dbProducts.map((p, index) => {
-                  const IconComponent = p.icon && ICON_MAP[p.icon] ? ICON_MAP[p.icon] : Package;
+                  const iconName = toIconName(p);
+                  const IconComponent = iconName ? ICON_MAP[iconName] : Package;
                   const displayUrl = p.redirectUrl
                     ? p.redirectUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
                     : '';
@@ -482,7 +494,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                   const isNearBottom = index >= dbProducts.length - 2 && dbProducts.length > 2;
                   return (
                     <tr key={p.id}>
-                      <td>
+                      <td className="rs-card-title">
                         <div className="table-service-cell">
                           <div className="table-service-thumb" title={`Service ID: ${p.id}`}>
                             {p.imageUrl ? (
@@ -501,10 +513,10 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Description">
                         <div className="table-desc-cell">{p.description}</div>
                       </td>
-                      <td>
+                      <td data-label="Website">
                         {p.redirectUrl ? (
                           <a
                             href={p.redirectUrl}
@@ -520,13 +532,13 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                           <span className="table-muted-text">—</span>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`status-badge-soft ${p.isActive !== false ? 'active' : 'hidden'}`}>
                           <span className="status-dot" />
                           <span>{p.isActive !== false ? 'Active' : 'Hidden'}</span>
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Quick Button">
                         <button
                           type="button"
                           onClick={() => handleToggleFeatured(p)}
@@ -550,7 +562,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                           <span>{p.isFeatured ? 'Quick Button' : 'Catalog'}</span>
                         </button>
                       </td>
-                      <td className="td-actions">
+                      <td className="td-actions rs-card-actions">
                         <div className="kebab-menu-container">
                           <button
                             type="button"
@@ -590,7 +602,7 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({
                                   setProdFormDesc(p.description || '');
                                   setProdFormWelcome(p.welcomeMessage || '');
                                   setProdFormRedirect(p.redirectUrl || '');
-                                  setProdFormIcon(p.icon || 'Laptop');
+                                  setProdFormIcon(toIconName(p) || 'Laptop');
                                   setProdFormTheme(p.theme || 'prod_nexzentek');
                                   setProdFormImageUrl(p.imageUrl || '');
                                   setProdFormFeatures(Array.isArray(p.features) ? p.features.join(', ') : p.features || '');

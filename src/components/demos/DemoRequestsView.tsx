@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<DemoBookingStatus, string> = {
   pending: 'Pending',
   confirmed: 'Confirmed',
   reschedule_requested: 'Reschedule Requested',
-  meeting_pending: 'Confirming Meeting',
+  meeting_pending: 'Preparing Meeting',
   completed: 'Completed',
   cancelled: 'Cancelled',
   declined: 'Declined'
@@ -36,24 +36,60 @@ const FILTER_TABS: Array<{ id: 'all' | DemoBookingStatus; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'pending', label: 'Pending' },
   { id: 'confirmed', label: 'Confirmed' },
-  { id: 'meeting_pending', label: 'Confirming Meeting' },
+  { id: 'meeting_pending', label: 'Preparing Meeting' },
   { id: 'completed', label: 'Completed' },
   { id: 'cancelled', label: 'Cancelled' },
   { id: 'declined', label: 'Declined' }
 ];
 
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DEFAULT_ORG_OFFSET = '+05:30';
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+// Formats a booking timestamp as "Friday, 25 September · 11:00 AM". Reads the wall-clock parts
+// straight from the canonical timestamp (already in the booking timezone), so the staff member's
+// own browser timezone never shifts the date. Never says "Today"/"Tomorrow": requests are often
+// reviewed later.
 function formatFriendly(iso: string) {
   if (!iso) return '—';
   const [datePart, timePart] = iso.split('T');
+  if (!datePart || !timePart) return iso;
   const [y, mo, d] = datePart.split('-').map(Number);
   const [hh, mm] = (timePart || '00:00:00').split(':').map(Number);
-  const dateObj = new Date(Date.UTC(y, mo - 1, d));
-  const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  const weekday = WEEKDAY_NAMES[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()];
   const hour12 = hh % 12 === 0 ? 12 : hh % 12;
   const ampm = hh < 12 ? 'AM' : 'PM';
-  const timeLabel = mm === 0 ? `${hour12}:00 ${ampm}` : `${hour12}:${String(mm).padStart(2, '0')} ${ampm}`;
-  return `${weekday}, ${month} ${d} · ${timeLabel}`;
+  return `${weekday}, ${d} ${MONTH_NAMES[mo - 1]} · ${hour12}:${pad2(mm)} ${ampm}`;
+}
+
+function formatFriendlyDateTime(iso: string) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const weekday = WEEKDAY_NAMES[d.getDay()];
+  const day = d.getDate();
+  const month = MONTH_NAMES[d.getMonth()];
+  const hh = d.getHours();
+  const mm = d.getMinutes();
+  const hour12 = hh % 12 === 0 ? 12 : hh % 12;
+  const ampm = hh < 12 ? 'AM' : 'PM';
+  return `${weekday}, ${day} ${month} · ${hour12}:${pad2(mm)} ${ampm}`;
+}
+
+function getIsoOffset(iso: string) {
+  return iso.match(/[+-]\d{2}:\d{2}$/)?.[0] || DEFAULT_ORG_OFFSET;
+}
+
+// Adds minutes to a naive "YYYY-MM-DDTHH:mm" wall-clock value using pure calendar math, so the
+// result stays in the same timezone as the input (no browser/UTC conversion).
+function addMinutesToLocalValue(localValue: string, minutes: number) {
+  const [datePart, timePart] = localValue.split('T');
+  const [y, mo, d] = datePart.split('-').map(Number);
+  const [hh, mm] = timePart.split(':').map(Number);
+  const t = new Date(Date.UTC(y, mo - 1, d, hh, mm) + minutes * 60000);
+  return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}T${pad2(t.getUTCHours())}:${pad2(t.getUTCMinutes())}`;
 }
 
 function toDatetimeLocalValue(iso: string) {
@@ -237,9 +273,11 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
     const draft = rescheduleDraft[booking.id];
     if (!draft) return;
     const durationMs = new Date(booking.requestedSlotEnd).getTime() - new Date(booking.requestedSlotStart).getTime();
-    const startISO = `${draft}:00+05:30`;
-    const endDate = new Date(new Date(`${draft}:00+05:30`).getTime() + (Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 30 * 60000));
-    const endISO = endDate.toISOString().replace('Z', '') + '+05:30'; // approximate; server re-validates
+    const durationMinutes = Number.isFinite(durationMs) && durationMs > 0 ? Math.round(durationMs / 60000) : 30;
+    // Keep the booking's own timezone offset and canonical "YYYY-MM-DDTHH:mm:00+05:30" format.
+    const offset = getIsoOffset(booking.requestedSlotStart);
+    const startISO = `${draft}:00${offset}`;
+    const endISO = `${addMinutesToLocalValue(draft, durationMinutes)}:00${offset}`;
 
     setBusyBookingId(booking.id);
     try {
@@ -293,7 +331,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
               <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: '#0f172a' }}>Demo Requests</h3>
             </div>
             <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Customer-requested demos from the WhatsApp "Book a Demo" flow.
+              Manage customer demo bookings and meetings.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -324,7 +362,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
         {settingsOpen && settingsDraft && (
           <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem' }}>Demo Booking Settings</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
               <div>
                 <label style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-muted)' }}>Demo duration (minutes)</label>
                 <input
@@ -373,7 +411,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
 
             <div style={{ marginBottom: '0.85rem' }}>
               <label style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Available days</label>
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {WEEKDAY_LABELS.map((label, day) => {
                   const active = settingsDraft.workDays.includes(day);
                   return (
@@ -469,20 +507,20 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.8rem' }}>
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Requested Demo</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Demo Time</div>
                       <div style={{ fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Calendar size={13} /> {formatFriendly(booking.requestedSlotStart)}
                       </div>
                     </div>
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Requested</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Requested On</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#334155' }}>
-                        <Clock size={13} /> {new Date(booking.createdAt).toLocaleString()}
+                        <Clock size={13} /> {formatFriendlyDateTime(booking.createdAt)}
                       </div>
                     </div>
                     {booking.assignedStaffName && (
                       <div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Staff</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Demo Specialist</div>
                         <div style={{ color: '#334155' }}>{booking.assignedStaffName}</div>
                       </div>
                     )}
@@ -490,7 +528,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                       <div>
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>Meeting</div>
                         <a href={booking.meetingUri} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>
-                          Open Google Meet
+                          Join Google Meet
                         </a>
                       </div>
                     )}
@@ -503,7 +541,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                   )}
 
                   {confirmingId === booking.id && (
-                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div className="rs-actions" style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <select
                         value={selectedStaffByBooking[booking.id] || ''}
                         onChange={e => setSelectedStaffByBooking(prev => ({ ...prev, [booking.id]: e.target.value }))}
@@ -524,7 +562,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                   )}
 
                   {reschedulingId === booking.id && (
-                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div className="rs-actions" style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <input
                         type="datetime-local"
                         value={rescheduleDraft[booking.id] || ''}
@@ -541,7 +579,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                   )}
 
                   {canManage && (
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem' }}>
+                    <div className="rs-actions demo-card-actions" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem' }}>
                       {(booking.status === 'pending') && (
                         <>
                           <button type="button" className="btn-primary" onClick={() => openConfirm(booking)} style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -566,7 +604,7 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                             <XCircle size={13} /> Cancel
                           </button>
                           <button type="button" className="btn-secondary" disabled={busyBookingId === booking.id} onClick={() => handleSimpleAction(booking, 'complete')} style={{ padding: '5px 12px', fontSize: '0.8rem' }}>
-                            Mark Completed
+                            Mark as Completed
                           </button>
                         </>
                       )}

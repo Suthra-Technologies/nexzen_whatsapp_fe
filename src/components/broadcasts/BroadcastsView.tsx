@@ -409,10 +409,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
   return (
     <div className="broadcasts-container" style={{ padding: '0.5rem 0.75rem 2rem 0.75rem' }}>
       {/* Top Banner / Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+      <div className="rs-page-header rs-align-start" style={{
         marginBottom: '1.25rem',
         borderBottom: '1px solid var(--border-subtle)',
         paddingBottom: '1rem'
@@ -444,7 +441,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
         </div>
 
         {/* Sub-tabs Navigation */}
-        <div style={{
+        <div className="rs-tabs rs-tabs-grid-mobile" role="tablist" aria-label="Broadcast sections" style={{
           display: 'flex',
           background: 'rgba(0, 0, 0, 0.04)',
           borderRadius: '999px',
@@ -578,12 +575,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
 
       {/* SUB-TAB 1: CREATE BROADCAST */}
       {activeSubTab === 'create' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: SHOW_WHATSAPP_PREVIEW ? 'minmax(0, 1fr) 400px' : 'minmax(0, 1fr)',
-          gap: '1.75rem',
-          alignItems: 'start'
-        }}>
+        <div className={`rs-split${SHOW_WHATSAPP_PREVIEW ? ' rs-split-aside-400' : ''}`}>
           {/* LEFT: Composer & Audience Form */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Step 1: Choose Message Type */}
@@ -725,13 +717,14 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
                 </div>
 
                 {/* Quick Emoji Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.45rem' }}>
+                <div className="rs-emoji-bar" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem', marginBottom: '0.45rem' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Quick Emojis:</span>
                   {QUICK_EMOJIS.map(em => (
                     <button
                       key={em}
                       type="button"
                       onClick={() => handleInsertEmoji(em)}
+                      aria-label={`Insert ${em}`}
                       style={{
                         background: 'transparent',
                         border: 'none',
@@ -792,7 +785,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
 
                 {showCouponBuilder && (
                   <div style={{ padding: '0.85rem', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem' }}>
+                    <div className="rs-grid rs-grid-3" style={{ gap: '0.65rem' }}>
                       <div>
                         <label className="form-label" style={{ fontSize: '0.75rem' }}>Coupon Code</label>
                         <input
@@ -851,7 +844,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
               </div>
 
               {/* Action Button Setting */}
-              <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className="rs-stack-mobile" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
                   <input
                     type="checkbox"
@@ -891,7 +884,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>Customer &amp; Audience Selection</h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="rs-grid rs-grid-2" style={{ gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>
                     Send To
@@ -962,7 +955,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
             </div>
 
             {/* Bottom Actions Bar */}
-            <div style={{
+            <div className="rs-actions" style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -984,7 +977,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
               <button
                 type="button"
                 onClick={handleOpenSendConfirmation}
-                className="btn-primary"
+                className="btn-primary rs-primary"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1003,7 +996,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
 
           {/* RIGHT: Live WhatsApp Preview (temporarily hidden) */}
           {SHOW_WHATSAPP_PREVIEW && (
-          <div style={{ position: 'sticky', top: '1rem' }}>
+          <div className="rs-sticky-desktop" style={{ top: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                 📱 WhatsApp Live Preview
@@ -1200,7 +1193,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
               <p>No saved drafts. Start creating a campaign and click "Save as Draft"!</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: '1rem' }}>
               {drafts.map(d => (
                 <div
                   key={d.id}
@@ -1623,9 +1616,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
             </div>
 
             {/* Metrics Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+            <div className="rs-grid rs-grid-4" style={{
               gap: '0.65rem',
               marginBottom: '1.25rem'
             }}>

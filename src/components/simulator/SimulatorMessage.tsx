@@ -1,8 +1,9 @@
 import React from 'react';
-import { AlertCircle, Layers, MessageSquare, Star } from 'lucide-react';
+import { AlertCircle, ExternalLink, Layers, MessageSquare, Star } from 'lucide-react';
 import type { SimulatedMessage } from '../../types';
 import { API_BASE } from '../../constants';
 import { formatTimeOnly } from '../../utils/dateUtils';
+import { ServiceMenuMessage } from './ServiceMenuMessage';
 
 interface SimulatorMessageProps {
   message: SimulatedMessage;
@@ -21,6 +22,17 @@ export const SimulatorMessage: React.FC<SimulatorMessageProps> = ({
 }) => {
   const isOutbound = m.direction === 'outbound';
   const formattedTime = formatTimeOnly(m.timestamp);
+
+  if (m.type === 'interactive_button' && m.variant === 'service_menu') {
+    return (
+      <ServiceMenuMessage
+        message={m}
+        simulatorPhone={simulatorPhone}
+        simulatorName={simulatorName}
+        formattedTime={formattedTime}
+      />
+    );
+  }
 
   if (m.type === 'interactive_button') {
     return (
@@ -87,6 +99,27 @@ export const SimulatorMessage: React.FC<SimulatorMessageProps> = ({
             </button>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // WhatsApp "cta_url" button: opens the link directly, nothing is sent back to the business.
+  if (m.type === 'interactive_cta_url') {
+    return (
+      <div className="phone-interactive-list">
+        <div className="phone-interactive-body">
+          {m.body}
+        </div>
+        <a
+          href={m.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="phone-interactive-action"
+          style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+        >
+          <ExternalLink size={12} style={{ display: 'inline', marginRight: '4px' }} />
+          {m.buttonText}
+        </a>
       </div>
     );
   }

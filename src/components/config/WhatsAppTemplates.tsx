@@ -185,10 +185,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
   return (
     <div className="config-templates-view" style={{ maxWidth: 1100, margin: '0 auto' }}>
       {/* Header Row */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+      <div className="rs-page-header rs-align-start" style={{
         marginBottom: '1rem',
         borderBottom: '1px solid var(--border-subtle)',
         paddingBottom: '0.85rem'
@@ -202,7 +199,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="rs-actions" style={{ gap: '0.6rem' }}>
           <button
             type="button"
             className="btn-secondary"
@@ -216,7 +213,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
 
           <button
             type="button"
-            className="btn-primary"
+            className="btn-primary rs-primary"
             onClick={() => setShowCreateForm(prev => !prev)}
             style={{ fontSize: '0.8rem', padding: '0.45rem 0.95rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
           >
@@ -272,7 +269,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
           </h3>
 
           <form onSubmit={handleRegisterTemplate}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
+            <div className="rs-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600 }}>Template Name</label>
                 <input
@@ -329,7 +326,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <div className="rs-actions" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button
                 type="button"
                 className="btn-secondary"
@@ -339,7 +336,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
               </button>
               <button
                 type="submit"
-                className="btn-primary"
+                className="btn-primary rs-primary"
                 disabled={isRegisteringTemplate}
               >
                 {isRegisteringTemplate ? 'Submitting...' : 'Submit to WhatsApp'}
@@ -351,7 +348,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
 
       {/* Templates List */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <div className="rs-page-header" style={{ gap: '0.25rem 1rem', marginBottom: '0.75rem' }}>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
             Registered Templates ({templates.length})
           </h3>
@@ -366,7 +363,7 @@ export const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({
             <p>No message templates found.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: '1rem' }}>
             {templates.map((tpl: any) => {
               const bodyText = tpl.components?.find((c: any) => c.type === 'BODY')?.text || '';
               const isTechExpanded = expandedTechnicalId === (tpl.id || tpl.name);

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRightLeft,
   Bell,
   BellOff,
@@ -10,12 +11,14 @@ import {
   CheckCheck,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   Download,
   Eye,
   FileText,
   Film,
   Maximize2,
   MessageSquare,
+  MoreVertical,
   Music,
   Paperclip,
   Plus,
@@ -23,6 +26,7 @@ import {
   Search,
   Send,
   Smile,
+  StickyNote,
   Volume2,
   VolumeX,
   X
@@ -33,6 +37,7 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { wsService, type WSConnectionStatus } from '../services/websocket';
 import { notificationService } from '../utils/notificationService';
 import { ConversationNotes } from './ConversationNotes';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
   formatTimeOnly,
   formatContextualDateTime,
@@ -55,7 +60,7 @@ interface SupportCenterProps {
   conversations: Conversation[];
   filteredConversations: Conversation[];
   selectedConversationId: string | null;
-  setSelectedConversationId: (id: string) => void;
+  setSelectedConversationId: (id: string | null) => void;
   currentConversation: Conversation | undefined;
   adminProductFilter: string;
   setAdminProductFilter: (filter: string) => void;
@@ -105,6 +110,40 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
   currentUser
 }) => {
   const navigate = useNavigate();
+  const breakpoint = useBreakpoint();
+  // Phones (< 768px) get a compact conversation header with secondary actions in a menu.
+  const isMobile = breakpoint === 'mobile';
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuView, setMobileMenuView] = React.useState<'main' | 'reassign'>('main');
+  const [mobileNotesOpen, setMobileNotesOpen] = React.useState(false);
+  const mobileMenuRef = React.useRef<HTMLDivElement>(null);
+  const mobileMenuButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  // Close the actions menu when switching conversations or leaving the phone layout.
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [currentConversation?.id, isMobile]);
+
+  // Actions menu: focus the first item on open; close on outside tap / Escape.
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return;
+    mobileMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    const onPointerDown = (e: PointerEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) setMobileMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+        mobileMenuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [mobileMenuOpen, mobileMenuView]);
   const [isResolving, setIsResolving] = React.useState(false);
   const [isReassigning, setIsReassigning] = React.useState(false);
   const [reassignMenuOpen, setReassignMenuOpen] = React.useState(false);
@@ -245,6 +284,32 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
       console.error('Failed to claim ticket:', err);
     } finally {
       setIsClaiming(false);
+    }
+  };
+
+  const [isReopening, setIsReopening] = React.useState(false);
+
+  const handleReopenConversation = async (conversationId: string) => {
+    setIsReopening(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/reopen`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ conversationId })
+      });
+      if (res.ok) {
+        if (currentConversation && currentConversation.id === conversationId) {
+          currentConversation.status = 'open';
+          window.dispatchEvent(new CustomEvent('conversationUpdated', { detail: { ...currentConversation, status: 'open' } }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to reopen conversation:', err);
+    } finally {
+      setIsReopening(false);
     }
   };
 
@@ -781,8 +846,11 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  // Below desktop width the list and the chat are separate views: list first, chat on tap.
+  const compactLayout = breakpoint !== 'desktop';
+
   return (
-    <div className="admin-chat-area">
+    <div className={`admin-chat-area${compactLayout ? (currentConversation ? ' view-chat' : ' view-list') : ''}`}>
       {/* Conversations List Panel */}
       <div className="conversations-list-pane">
         <div className="pane-header">
@@ -1071,8 +1139,270 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
       {/* Right Chat History & Reply box */}
       {currentConversation ? (
         <div className="chat-window">
-          {/* Customer Header */}
+          {/* Customer Header: compact version on phones */}
+          {isMobile ? (
+            <div className="chat-header chat-header-mobile">
+              <div className="chat-mobile-nav-bar">
+                <button
+                  type="button"
+                  className="chat-back-btn"
+                  onClick={() => setSelectedConversationId(null)}
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Conversations</span>
+                </button>
+              </div>
+
+              <div className="chat-mobile-card">
+                <div className="chat-header-avatar">
+                  {(currentConversation.userName || 'U').charAt(0).toUpperCase()}
+                </div>
+
+                <div className="chat-mobile-info">
+                  <div className="chat-mobile-name-row">
+                    <h2 className="chat-header-name">{currentConversation.userName}</h2>
+                    {currentConversation.status === 'resolved' ? (
+                      <span className="chat-mobile-status closed">
+                        <Check size={10} />
+                        Closed
+                        {typeof currentConversation.csatRating === 'number' && (
+                          <span className="csat-rating-badge" title="Customer satisfaction rating">
+                            {'★'.repeat(currentConversation.csatRating)}{'☆'.repeat(5 - currentConversation.csatRating)}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="chat-mobile-status open">
+                        <span className="chat-mobile-dot" />
+                        Open
+                      </span>
+                    )}
+                  </div>
+                  <div className="chat-mobile-sub">
+                    <span className="chat-mobile-product">{currentConversation.productName}</span>
+                    <span className="chat-meta-sep">·</span>
+                    <span className="chat-mobile-phone">+{currentConversation.phone}</span>
+                  </div>
+                  <div className="chat-mobile-meta">
+                    <span
+                      className={`chat-mobile-live ${wsStatus === 'connected' ? 'is-live' : 'is-offline'}`}
+                      title={wsStatus === 'connected' ? 'Real-time WebSocket connected' : 'WebSocket connecting or fallback active'}
+                    >
+                      <span className="chat-mobile-dot" />
+                      {wsStatus === 'connected' ? 'Live' : 'Reconnecting'}
+                    </span>
+                    {currentConversation.assignedAdminName && (
+                      <span className="chat-mobile-assignee" title={`Assigned to ${currentConversation.assignedAdminName}`}>
+                        · {currentConversation.assignedAdminName}
+                      </span>
+                    )}
+                    {(liveViewingAgent || currentConversation.viewingAgentName) && (
+                      <span className="chat-mobile-viewing" title="Coordinate before replying to avoid sending two different answers">
+                        <Eye size={10} /> {liveViewingAgent || currentConversation.viewingAgentName}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {!currentConversation.assignedAdminName && (
+                  <button
+                    type="button"
+                    className="chat-mobile-claim"
+                    onClick={handleClaimTicket}
+                    disabled={isClaiming}
+                    title="Claim this ticket and assign to yourself"
+                  >
+                    {isClaiming ? 'Claiming…' : 'Claim'}
+                  </button>
+                )}
+
+                <div className="chat-mobile-menu" ref={mobileMenuRef}>
+                  <button
+                    type="button"
+                    ref={mobileMenuButtonRef}
+                    className="chat-mobile-menu-btn"
+                    aria-label="Conversation actions"
+                    aria-haspopup="menu"
+                    aria-expanded={mobileMenuOpen}
+                    onClick={() => {
+                      setMobileMenuView('main');
+                      setMobileMenuOpen(open => !open);
+                    }}
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+
+                  {mobileMenuOpen && (
+                    <div className="chat-mobile-menu-panel" role="menu" aria-label="Conversation actions">
+                      {mobileMenuView === 'main' ? (
+                        <>
+                          {currentConversation.assignedAdminName ? (
+                            <div className="chat-mobile-menu-info">
+                              <Check size={14} />
+                              <span>Assigned to {currentConversation.assignedAdminName}</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="chat-mobile-menu-item"
+                              disabled={isClaiming}
+                              onClick={() => {
+                                setMobileMenuOpen(false);
+                                handleClaimTicket();
+                              }}
+                            >
+                              <Plus size={15} />
+                              <span>{isClaiming ? 'Claiming...' : 'Claim Ticket'}</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="chat-mobile-menu-item"
+                            disabled={isReassigning}
+                            onClick={() => setMobileMenuView('reassign')}
+                          >
+                            <ArrowRightLeft size={15} />
+                            <span>{isReassigning ? 'Moving...' : 'Reassign'}</span>
+                            <ChevronRight size={15} className="chat-mobile-menu-chevron" />
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="chat-mobile-menu-item"
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              handleExportConversation();
+                            }}
+                          >
+                            <Download size={15} />
+                            <span>Export</span>
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="chat-mobile-menu-item"
+                            data-notes-trigger
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setMobileNotesOpen(true);
+                            }}
+                          >
+                            <StickyNote size={15} />
+                            <span>Internal Note</span>
+                          </button>
+                          {currentConversation.status !== 'resolved' ? (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="chat-mobile-menu-item"
+                              disabled={isResolving}
+                              onClick={async () => {
+                                setMobileMenuOpen(false);
+                                setIsResolving(true);
+                                try {
+                                  await handleResolveConversation(currentConversation.id);
+                                } finally {
+                                  setIsResolving(false);
+                                }
+                              }}
+                            >
+                              <CheckCircle2 size={15} />
+                              <span>{isResolving ? 'Closing...' : 'Close Conversation'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="chat-mobile-menu-item"
+                              disabled={isReopening}
+                              onClick={async () => {
+                                setMobileMenuOpen(false);
+                                await handleReopenConversation(currentConversation.id);
+                              }}
+                            >
+                              <RefreshCw size={15} />
+                              <span>{isReopening ? 'Reopening...' : 'Reopen Conversation'}</span>
+                            </button>
+                          )}
+                          <div className="chat-mobile-menu-details">
+                            <span className="chat-mobile-menu-details-label">Technical Details</span>
+                            <span className="chat-mobile-menu-details-value">
+                              Phone: +{currentConversation.phone}
+                            </span>
+                            <span className="chat-mobile-menu-details-value">
+                              ID: {currentConversation.id}
+                            </span>
+                            {currentConversation.userEmail && (
+                              <span className="chat-mobile-menu-details-value">
+                                Email: {currentConversation.userEmail}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="chat-mobile-menu-item chat-mobile-menu-back"
+                            onClick={() => setMobileMenuView('main')}
+                          >
+                            <ArrowLeft size={15} />
+                            <span>Reassign to team</span>
+                          </button>
+                          {allProducts.filter(p => p.id !== currentConversation.productId).map(p => (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              key={p.id}
+                              className="chat-mobile-menu-item"
+                              onClick={async () => {
+                                setMobileMenuOpen(false);
+                                setIsReassigning(true);
+                                try {
+                                  await handleReassignConversation(currentConversation.id, p.id);
+                                } finally {
+                                  setIsReassigning(false);
+                                }
+                              }}
+                            >
+                              <span className={`row-tag ${p.theme} filter-option-dot`} />
+                              <span>{p.name}</span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Internal notes (staff only), opened from the actions menu */}
+              <ConversationNotes
+                conversationId={currentConversation.id}
+                currentUser={currentUser}
+                getAuthHeaders={getAuthHeaders}
+                hideTrigger
+                open={mobileNotesOpen}
+                onOpenChange={setMobileNotesOpen}
+              />
+            </div>
+          ) : (
           <div className="chat-header">
+            {compactLayout && (
+              <button
+                type="button"
+                className="chat-back-btn"
+                onClick={() => setSelectedConversationId(null)}
+                aria-label="Back to conversations"
+              >
+                <ArrowLeft size={16} />
+                <span>Conversations</span>
+              </button>
+            )}
             <div className="chat-header-user-card">
               <div className="chat-header-avatar">
                 {(currentConversation.userName || 'U').charAt(0).toUpperCase()}
@@ -1283,6 +1613,7 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
               </div>
             </div>
           </div>
+          )}
 
           {/* Delivery Failure Warning Banner */}
           {hasActiveFailure && (
@@ -1633,12 +1964,12 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
                 {currentConversation.status === 'resolved' ? (
                   <div className="composer-status-notice">
                     <span className="composer-status-dot" />
-                    <span>Conversation closed · Replying will reopen it</span>
+                    <span>{isMobile ? 'Closed · Replying reopens it' : 'Conversation closed · Replying will reopen it'}</span>
                   </div>
                 ) : isSessionExpired ? (
                   <div className="composer-status-notice session-expired">
                     <span className="composer-status-dot expired" />
-                    <span>Session window expired · Customer must message first</span>
+                    <span>{isMobile ? 'Window expired' : 'Session window expired · Customer must message first'}</span>
                     <button
                       type="button"
                       className="help-inline-link"
@@ -1651,29 +1982,18 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
                   <div className="composer-status-notice session-active">
                     <span className="composer-status-dot" style={{ background: '#10b981', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)' }} />
                     <span style={{ color: '#059669', fontWeight: 500 }}>
-                      {sessionWindowRemaining ? `Window Active · ${sessionWindowRemaining} remaining` : 'Window Active · 24 hours'}
+                      {isMobile
+                        ? (sessionWindowRemaining ? `Window active · ${sessionWindowRemaining} left` : 'Window active · 24h')
+                        : (sessionWindowRemaining ? `Window Active · ${sessionWindowRemaining} remaining` : 'Window Active · 24 hours')}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="composer-utility-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="composer-utility-right">
                 {isSessionExpired && currentConversation.status === 'open' && (
                   <button
                     type="button"
                     className="btn-send-followup-template"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      color: '#059669',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
                     onClick={handleSendReengagement}
                     disabled={isSendingReengagement}
                     title="Send an approved Meta utility follow-up template to reopen the 24-hour window"

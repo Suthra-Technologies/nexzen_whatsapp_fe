@@ -6,6 +6,7 @@ export interface Product {
   redirectUrl: string;
   isActive?: boolean;
   icon?: any;
+  iconName?: string; // stored icon name, when valid (icon holds the resolved component)
   theme?: string;
   imageUrl?: string;
   features?: string[] | string;
@@ -134,9 +135,19 @@ export interface SimulatedMessage {
   body?: string;
   text?: string;
   footer?: string;
-  buttons?: Array<{ id: string; title: string }>;
+  variant?: 'service_menu' | string;
+  buttons?: Array<{
+    id: string;
+    title: string;
+    kind?: 'product' | 'explore';
+    name?: string;
+    description?: string;
+    icon?: string | null;
+  }>;
   buttonText?: string;
+  url?: string;
   options?: Array<{ id: string; title: string; description?: string }>;
+  sections?: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }>;
   status?: string;
   errorCode?: number | string | null;
   errorTitle?: string | null;

@@ -3481,6 +3481,170 @@ textarea {
   background: rgba(37, 152, 0, 0.25);
 }
 
+/* Welcome service menu in the WhatsApp preview: compact option rows under the message bubble */
+.wa-menu {
+  align-self: flex-start;
+  width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wa-menu .wa-menu-bubble {
+  align-self: stretch;
+  max-width: 100%;
+}
+
+.wa-menu-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.wa-menu-body {
+  white-space: pre-line;
+}
+
+.wa-menu-footer {
+  margin-top: 0.4rem;
+  font-size: 0.68rem;
+  color: #8696a0;
+}
+
+.wa-menu-bubble .phone-msg-time {
+  display: block;
+  margin-top: 0.2rem;
+  text-align: right;
+  font-size: 0.62rem;
+  color: #8696a0;
+}
+
+.wa-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wa-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px 9px 9px;
+  background: #1c2a31;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  color: #e9edef;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.wa-option:hover {
+  background: #22333b;
+  border-color: rgba(46, 189, 0, 0.35);
+}
+
+.wa-option:active {
+  transform: scale(0.985);
+  background: #263a43;
+}
+
+.wa-option:focus-visible {
+  outline: 2px solid #2ebd00;
+  outline-offset: 2px;
+}
+
+.wa-option.is-selected {
+  background: rgba(37, 152, 0, 0.14);
+  border-color: #259800;
+}
+
+.wa-option-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 152, 0, 0.14);
+  color: #2ebd00;
+}
+
+.wa-option.is-selected .wa-option-icon {
+  background: #259800;
+  color: #ffffff;
+}
+
+.wa-option-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wa-option-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #e9edef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wa-option-desc {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #8696a0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wa-option-chevron {
+  flex-shrink: 0;
+  color: #8696a0;
+  transition: color 0.15s ease;
+}
+
+.wa-option:hover .wa-option-chevron,
+.wa-option.is-selected .wa-option-chevron {
+  color: #2ebd00;
+}
+
+/* "Explore All Services" opens the full catalog, so it reads as an action rather than a product */
+.wa-option--explore {
+  margin-top: 2px;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.wa-option--explore .wa-option-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: #aebac1;
+}
+
+.wa-option--explore .wa-option-name {
+  color: #2ebd00;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-option,
+  .wa-option-chevron {
+    transition: none;
+  }
+
+  .wa-option:active {
+    transform: none;
+  }
+}
+
 .phone-input-bar {
   padding: 0.5rem 0.65rem;
   background: #1f2c34;

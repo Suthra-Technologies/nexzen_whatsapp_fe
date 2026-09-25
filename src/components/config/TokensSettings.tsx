@@ -289,7 +289,7 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="rs-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             type="button"
             className="btn-secondary"
@@ -302,7 +302,7 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
           </button>
           <button
             type="button"
-            className="btn-primary"
+            className="btn-primary rs-primary"
             onClick={handleSaveSettings}
             disabled={settingsSaving || settingsLoading || settingsSwitching}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
@@ -369,7 +369,7 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
 
       {/* CREDENTIALS FORM */}
       <form onSubmit={handleSaveSettings}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div className="rs-collapse-tablet" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
           {/* Column 1: Meta App Credentials & Account IDs */}
           <div className="glass-card config-form">
             <h3 className="form-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -593,11 +593,11 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
             <Activity size={15} style={{ color: '#a855f7' }} />
             WhatsApp Integration Setup Reference
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', fontSize: '0.82rem' }}>
+          <div className="rs-collapse-tablet" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', fontSize: '0.82rem' }}>
             <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', padding: '0.75rem', borderRadius: '8px' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: '4px', fontWeight: 600 }}>CALLBACK URL (Meta App Dashboard)</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-main)' }}>
-                <span>{window.location.origin}/api/webhook/whatsapp</span>
+                <span className="rs-wrap">{window.location.origin}/api/webhook/whatsapp</span>
                 <button
                   type="button"
                   onClick={() => handleCopySettingValue('callbackUrl', `${window.location.origin}/api/webhook/whatsapp`)}
@@ -610,7 +610,7 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
             <div style={{ background: '#f8fafc', border: '1px solid var(--border-subtle)', padding: '0.75rem', borderRadius: '8px' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: '4px', fontWeight: 600 }}>VERIFY TOKEN</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-main)' }}>
-                <span>{settingsForm.WHATSAPP_VERIFY_TOKEN || 'pos_whatsapp_verify_token'}</span>
+                <span className="rs-wrap">{settingsForm.WHATSAPP_VERIFY_TOKEN || 'pos_whatsapp_verify_token'}</span>
                 <button
                   type="button"
                   onClick={() => handleCopySettingValue('refVerify', settingsForm.WHATSAPP_VERIFY_TOKEN || 'pos_whatsapp_verify_token')}

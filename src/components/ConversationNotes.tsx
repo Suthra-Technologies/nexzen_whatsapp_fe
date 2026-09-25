@@ -8,6 +8,11 @@ interface ConversationNotesProps {
   conversationId: string;
   currentUser?: AdminUser | null;
   getAuthHeaders: () => Record<string, string>;
+  /** Optional controlled open state, e.g. when the panel is opened from a mobile actions menu. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the built-in "Note" button (the caller provides its own trigger). */
+  hideTrigger?: boolean;
 }
 
 const formatNoteTime = (iso: string) => {
@@ -27,9 +32,18 @@ const formatNoteTime = (iso: string) => {
 export const ConversationNotes: React.FC<ConversationNotesProps> = ({
   conversationId,
   currentUser,
-  getAuthHeaders
+  getAuthHeaders,
+  open,
+  onOpenChange,
+  hideTrigger = false
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === 'function' ? next(isOpen) : next;
+    if (open === undefined) setInternalOpen(value);
+    onOpenChange?.(value);
+  };
   const [notes, setNotes] = React.useState<ConversationNote[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -110,7 +124,8 @@ export const ConversationNotes: React.FC<ConversationNotesProps> = ({
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.notes-dropdown')) {
+      // [data-notes-trigger] marks an external opener (e.g. the mobile actions menu item).
+      if (!target.closest('.notes-dropdown, [data-notes-trigger]')) {
         setIsOpen(false);
         setMenuOpenId(null);
       } else if (!target.closest('.note-item-menu-container')) {
@@ -216,15 +231,17 @@ export const ConversationNotes: React.FC<ConversationNotesProps> = ({
 
   return (
     <div className="notes-dropdown">
-      <button
-        type="button"
-        className={`btn-reassign-header ${notes.length > 0 ? 'has-note' : ''}`}
-        onClick={() => setIsOpen(prev => !prev)}
-        title="Internal notes (staff only)"
-      >
-        <StickyNote size={13} />
-        <span>{notes.length > 0 ? `Note ${notes.length}` : 'Note'}</span>
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          className={`btn-reassign-header ${notes.length > 0 ? 'has-note' : ''}`}
+          onClick={() => setIsOpen(prev => !prev)}
+          title="Internal notes (staff only)"
+        >
+          <StickyNote size={13} />
+          <span>{notes.length > 0 ? `Note ${notes.length}` : 'Note'}</span>
+        </button>
+      )}
 
       {isOpen && (
         <div className="notes-panel">

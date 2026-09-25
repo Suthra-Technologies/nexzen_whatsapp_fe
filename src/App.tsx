@@ -22,6 +22,7 @@ import { BroadcastsView } from './components/broadcasts/BroadcastsView';
 import { DemoRequestsView } from './components/demos/DemoRequestsView';
 import { ActionCenterPanel } from './components/notifications/ActionCenterPanel';
 import type { AdminUser, Conversation, Product, WhatsAppTemplate } from './types';
+import { useBreakpoint } from './hooks/useBreakpoint';
 
 type ConfigSubTab = 'products' | 'templates' | 'settings' | 'analytics' | 'staff';
 type TopTab = 'landing' | 'admin' | 'broadcasts' | 'demos' | 'config' | 'login' | 'help';
@@ -151,6 +152,7 @@ export default function App() {
     welcomeMessage: dbP.welcomeMessage,
     redirectUrl: dbP.redirectUrl,
     icon: ICON_MAP[dbP.icon] || Laptop,
+    iconName: typeof dbP.icon === 'string' && ICON_MAP[dbP.icon] ? dbP.icon : undefined,
     theme: dbP.theme || 'prod_nexzentek',
     imageUrl: dbP.imageUrl || '',
     features: Array.isArray(dbP.features)
@@ -269,6 +271,64 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nexzen_sidebar_collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  // Responsive navigation: desktop keeps the persistent sidebar; tablet shows a collapsed rail
+  // that expands as an overlay; mobile hides the sidebar behind a drawer opened from the header.
+  const breakpoint = useBreakpoint();
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = () => setNavOpen(false);
+
+  // Navigating (or crossing a breakpoint) always closes the drawer/overlay.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname, breakpoint]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navOpen]);
+
+  // Move focus into the mobile drawer when it opens, and back to the menu button when it closes.
+  const navWasOpen = useRef(false);
+  useEffect(() => {
+    if (breakpoint !== 'mobile') return;
+    if (navOpen) {
+      document.querySelector<HTMLElement>('.app-sidebar .sidebar-drawer-close')?.focus();
+    } else if (navWasOpen.current) {
+      document.querySelector<HTMLElement>('.app-menu-btn')?.focus();
+    }
+    navWasOpen.current = navOpen;
+  }, [navOpen, breakpoint]);
+
+  // Phones: size the app to the visible viewport so the on-screen keyboard shrinks the layout
+  // (keeping the chat composer visible) instead of covering it. Android Chrome also does this via
+  // interactive-widget=resizes-content in index.html; iOS Safari needs the VisualViewport API.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (breakpoint !== 'mobile' || !vv) return;
+    const root = document.documentElement;
+    const update = () => {
+      root.style.setProperty('--app-height', `${Math.round(vv.height)}px`);
+      // iOS pans the page to reveal a focused input; keep the app pinned to the top instead.
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      root.style.removeProperty('--app-height');
+    };
+  }, [breakpoint]);
+
+  const sidebarIsCollapsed = breakpoint === 'desktop' ? sidebarCollapsed : breakpoint === 'tablet' ? !navOpen : false;
+  const setSidebarIsCollapsed = (collapsed: boolean) => {
+    if (breakpoint === 'desktop') setSidebarCollapsed(collapsed);
+    else setNavOpen(!collapsed);
+  };
 
   const getAuthHeaders = (): Record<string, string> => {
     const token = authToken || localStorage.getItem('nexzen_auth_token') || sessionStorage.getItem('nexzen_auth_token');
@@ -988,22 +1048,29 @@ export default function App() {
   }
 
   return (
-    <div className="app-layout-root">
+    <div className={`app-layout-root app-mode-${breakpoint}${navOpen ? ' nav-open' : ''}`}>
       {/* LEFT SIDEBAR NAVIGATION */}
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={handleTabChange}
+        onSelectTab={tab => { handleTabChange(tab); closeNav(); }}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onLogout={() => { closeNav(); handleLogout(); }}
         backendOnline={backendOnline}
         openConversationsCount={visibleConversations.filter(c => c.status !== 'resolved').length}
         failedConversationsCount={failedConversationsCount}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
+        collapsed={sidebarIsCollapsed}
+        setCollapsed={setSidebarIsCollapsed}
         configSubTab={configSubTab}
-        setConfigSubTab={handleSetConfigSubTab}
+        setConfigSubTab={tab => { handleSetConfigSubTab(tab); closeNav(); }}
         loadTemplates={loadTemplates}
+        mode={breakpoint}
+        onCloseNav={closeNav}
       />
+
+      {/* Tap-outside area that closes the mobile drawer / tablet overlay */}
+      {navOpen && breakpoint !== 'desktop' && (
+        <div className="app-nav-backdrop" onClick={closeNav} aria-hidden="true" />
+      )}
 
       {/* MAIN VIEWPORT */}
       <div className="app-main-viewport">
@@ -1014,6 +1081,9 @@ export default function App() {
           currentUser={currentUser}
           getAuthHeaders={getAuthHeaders}
           onNavigate={navigate}
+          compact={breakpoint === 'mobile'}
+          navOpen={navOpen}
+          onOpenNav={() => setNavOpen(true)}
         />
 
         {/* VIEWPORT BODY */}
@@ -1022,10 +1092,14 @@ export default function App() {
         */}
         <div className="portal-container">
             {/* LEFT SIDE: MAIN APP CONTENT */}
-            <div style={{ overflowY: 'auto', padding: '1rem', borderRight: '1px solid var(--border-subtle)' }}>
+            <div className={`app-content-scroll${activeTab === 'admin' && breakpoint !== 'desktop' && currentConversation ? ' is-chat-view' : ''}`}>
               {activeTab === 'admin' ? (
                 <>
-                  <ActionCenterPanel currentUser={currentUser} getAuthHeaders={getAuthHeaders} onNavigate={navigate} />
+                  {/* On tablet/mobile the open chat takes the whole view; the action panel stays mounted
+                      (no refetch) but is hidden by .is-chat-view in responsive.css. */}
+                  <div className="action-center-slot">
+                    <ActionCenterPanel currentUser={currentUser} getAuthHeaders={getAuthHeaders} onNavigate={navigate} />
+                  </div>
                   <SupportCenter
                   currentUser={currentUser}
                   conversations={visibleConversations}

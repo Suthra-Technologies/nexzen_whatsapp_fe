@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, BellRing, Volume2, VolumeX } from 'lucide-react';
+import { Bell, BellOff, BellRing, Menu, MoreVertical, Volume2, VolumeX } from 'lucide-react';
 import type { AdminUser } from '../types';
 import { notificationService } from '../utils/notificationService';
 import { NotificationBell } from './notifications/NotificationBell';
@@ -13,6 +13,10 @@ interface HeaderProps {
   currentUser?: AdminUser | null;
   getAuthHeaders?: () => Record<string, string>;
   onNavigate?: (path: string) => void;
+  /** Mobile layout: menu button + brand + bell, with sound/alert controls in an overflow menu. */
+  compact?: boolean;
+  navOpen?: boolean;
+  onOpenNav?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,10 +24,36 @@ export const Header: React.FC<HeaderProps> = ({
   backendOnline,
   currentUser,
   getAuthHeaders,
-  onNavigate
+  onNavigate,
+  compact = false,
+  navOpen = false,
+  onOpenNav
 }) => {
   const [soundOn, setSoundOn] = React.useState(notificationService.isSoundEnabled());
   const [perm, setPerm] = React.useState<NotificationPermission>(notificationService.getPermissionStatus());
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement>(null);
+
+  // Close the mobile overflow menu on outside click / Escape, or when leaving mobile layout.
+  React.useEffect(() => {
+    if (!moreOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [moreOpen]);
+
+  React.useEffect(() => {
+    if (!compact) setMoreOpen(false);
+  }, [compact]);
 
   const handleToggleSound = () => {
     const next = !soundOn;
@@ -79,8 +109,55 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const soundButton = (
+    <button
+      type="button"
+      className={`notif-header-btn ${soundOn ? 'sound-on' : 'sound-off'}`}
+      onClick={handleToggleSound}
+      title={soundOn ? 'Notification sound on (Click to mute)' : 'Notification sound muted (Click to unmute)'}
+    >
+      {soundOn ? <Volume2 size={13} /> : <VolumeX size={13} />}
+      <span>{soundOn ? 'Sound On' : 'Muted'}</span>
+    </button>
+  );
+
+  const alertsButton = perm !== 'granted' ? (
+    <button
+      type="button"
+      className={`notif-header-btn ${perm === 'denied' ? 'notif-blocked' : 'notif-enable-btn'}`}
+      onClick={handleRequestNotifications}
+      title={perm === 'denied' ? 'Desktop notifications blocked in browser settings' : 'Enable desktop push notifications'}
+    >
+      {perm === 'denied' ? <BellOff size={13} /> : <Bell size={13} />}
+      <span>{perm === 'denied' ? 'Alerts Blocked' : 'Enable Alerts'}</span>
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="notif-header-btn notif-active-btn"
+      onClick={handleTestNotification}
+      title="Desktop alerts active. Click to test sound & desktop notification."
+    >
+      <BellRing size={13} />
+      <span>Alerts Active</span>
+    </button>
+  );
+
   return (
-    <header className="app-header">
+    <header className={`app-header${compact ? ' app-header-compact' : ''}`}>
+      {compact && (
+        <button
+          type="button"
+          className="app-menu-btn"
+          onClick={onOpenNav}
+          aria-label="Open navigation"
+          aria-expanded={navOpen}
+          aria-controls="app-sidebar"
+        >
+          <Menu size={20} />
+        </button>
+      )}
+
       {/* Active Area Breadcrumb */}
       <div className="header-breadcrumbs">
         <span className="breadcrumb-root">NexZen Hub</span>
@@ -102,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <div className="header-actions">
         {/* Notification Center */}
         {currentUser && getAuthHeaders && (
           <NotificationBell
@@ -112,38 +189,33 @@ export const Header: React.FC<HeaderProps> = ({
           />
         )}
 
-        {/* Audio notification toggle */}
-        <button
-          type="button"
-          className={`notif-header-btn ${soundOn ? 'sound-on' : 'sound-off'}`}
-          onClick={handleToggleSound}
-          title={soundOn ? 'Notification sound on (Click to mute)' : 'Notification sound muted (Click to unmute)'}
-        >
-          {soundOn ? <Volume2 size={13} /> : <VolumeX size={13} />}
-          <span>{soundOn ? 'Sound On' : 'Muted'}</span>
-        </button>
-
-        {/* Desktop push notification button */}
-        {perm !== 'granted' ? (
-          <button
-            type="button"
-            className={`notif-header-btn ${perm === 'denied' ? 'notif-blocked' : 'notif-enable-btn'}`}
-            onClick={handleRequestNotifications}
-            title={perm === 'denied' ? 'Desktop notifications blocked in browser settings' : 'Enable desktop push notifications'}
-          >
-            {perm === 'denied' ? <BellOff size={13} /> : <Bell size={13} />}
-            <span>{perm === 'denied' ? 'Alerts Blocked' : 'Enable Alerts'}</span>
-          </button>
+        {compact ? (
+          /* Mobile: sound + alert controls live in an overflow menu */
+          <div className="header-more" ref={moreRef}>
+            <button
+              type="button"
+              className="notif-header-btn header-more-btn"
+              onClick={() => setMoreOpen(open => !open)}
+              aria-label="More options"
+              aria-haspopup="true"
+              aria-expanded={moreOpen}
+            >
+              <MoreVertical size={16} />
+            </button>
+            {moreOpen && (
+              <div className="header-more-menu" role="group" aria-label="Notification settings">
+                {soundButton}
+                {alertsButton}
+              </div>
+            )}
+          </div>
         ) : (
-          <button
-            type="button"
-            className="notif-header-btn notif-active-btn"
-            onClick={handleTestNotification}
-            title="Desktop alerts active. Click to test sound & desktop notification."
-          >
-            <BellRing size={13} />
-            <span>Alerts Active</span>
-          </button>
+          <>
+            {/* Audio notification toggle */}
+            {soundButton}
+            {/* Desktop push notification button */}
+            {alertsButton}
+          </>
         )}
 
         {/* WhatsApp preview toggle paused for now.

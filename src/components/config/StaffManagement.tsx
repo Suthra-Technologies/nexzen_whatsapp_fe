@@ -676,20 +676,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
 
   return (
     <div className="staff-management-container" style={{ padding: '1.5rem', color: 'var(--text-main)' }}>
-      {/* Responsive Styles Injection */}
-      <style>{`
-        @media (max-width: 800px) {
-          .team-access-desktop-table { display: none !important; }
-          .team-access-mobile-cards { display: flex !important; }
-        }
-        @media (min-width: 801px) {
-          .team-access-desktop-table { display: block !important; }
-          .team-access-mobile-cards { display: none !important; }
-        }
-      `}</style>
+      {/* Table vs. card switching lives in src/styles/responsive.css (shared breakpoints). */}
 
       {/* 1. PAGE HEADER */}
-      <div style={{
+      <div className="rs-page-header staff-page-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -702,7 +692,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
         flexWrap: 'wrap',
         gap: '1rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '260px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 'min(260px, 100%)' }}>
           <div style={{
             width: '48px',
             height: '48px',
@@ -717,7 +707,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
           }}>
             <Users size={26} />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
                 Team Access
@@ -792,7 +782,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <div className="rs-actions" style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button
             onClick={toggleAuditLog}
             className="btn-secondary"
@@ -811,7 +801,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
           </button>
           <button
             onClick={openCreateModal}
-            className="btn-primary"
+            className="btn-primary rs-primary"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1489,7 +1479,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
               border: '1px solid var(--border-subtle)',
               borderRadius: '14px',
               boxShadow: 'var(--shadow-subtle)',
-              overflow: 'hidden'
+              // Scroll inside the table when its columns are wider than the page (the Actions
+              // column used to be clipped and unreachable below ~1360px).
+              overflowX: 'auto'
             }}
           >
             {/* Table Header */}
@@ -2012,8 +2004,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                     borderLeft: isSuperAdmin ? '3px solid #259800' : '3px solid transparent'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <div className="rs-wrap">
                       <div style={{ fontWeight: 750, color: '#0f172a', fontSize: '0.95rem' }}>
                         {staff.name}
                       </div>

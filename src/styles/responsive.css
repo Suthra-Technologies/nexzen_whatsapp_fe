@@ -1,0 +1,1451 @@
+/* =============================================================================
+   NexZen Connect: responsive layer
+   -----------------------------------------------------------------------------
+   Loaded after index.css. Desktop (>= 1024px) keeps the existing design; this
+   file only adds tablet/mobile behaviour plus a few width-agnostic fixes.
+
+   Breakpoints (keep in sync with src/hooks/useBreakpoint.ts):
+     mobile   max-width: 767px
+     tablet   768px - 1023px
+     desktop  min-width: 1024px
+
+   App-shell rules are keyed off the layout mode classes that App.tsx puts on
+   .app-layout-root (app-mode-mobile / app-mode-tablet / app-mode-desktop), so
+   CSS and JS always agree on the current mode. Page-level rules use media
+   queries with the same breakpoints.
+
+   Sections: 1-3 app shell, 4 page building blocks, 5 shared utilities,
+   6 page-specific adjustments (only where a page needs more than the blocks).
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. App shell: all widths
+   ----------------------------------------------------------------------------- */
+.app-layout-root {
+  width: 100%; /* was 100vw, which includes the scrollbar and can overflow */
+  height: 100vh;
+  height: 100dvh;
+}
+
+.app-main-viewport {
+  min-width: 0; /* let the main column shrink instead of pushing past the viewport */
+  height: 100vh;
+  height: 100dvh;
+}
+
+.portal-container > * {
+  min-width: 0;
+}
+
+.app-content-scroll {
+  overflow-y: auto;
+  padding: 1rem;
+  border-right: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+
+.app-header {
+  gap: 0.75rem;
+}
+
+.header-breadcrumbs {
+  min-width: 0;
+}
+
+.breadcrumb-active {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.app-menu-btn,
+.sidebar-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.app-menu-btn:hover,
+.sidebar-drawer-close:hover {
+  background: var(--bg-main);
+}
+
+.app-menu-btn:focus-visible,
+.sidebar-drawer-close:focus-visible,
+.sidebar-collapse-btn:focus-visible,
+.sidebar-nav-item:focus-visible,
+.notif-header-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.app-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  background: rgba(15, 23, 42, 0.45);
+  animation: rs-fade-in 0.18s ease;
+}
+
+@keyframes rs-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* -----------------------------------------------------------------------------
+   2. App shell: tablet (collapsed rail; expanding overlays the content)
+   ----------------------------------------------------------------------------- */
+.app-mode-tablet .app-sidebar:not(.collapsed) {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100dvh;
+  z-index: 400;
+  box-shadow: 8px 0 30px rgba(15, 23, 42, 0.18);
+}
+
+/* Keep the rail's space while the expanded sidebar floats above the page. */
+.app-mode-tablet.nav-open .app-main-viewport {
+  margin-left: 68px;
+}
+
+/* -----------------------------------------------------------------------------
+   3. App shell: mobile (off-canvas drawer + compact header)
+   ----------------------------------------------------------------------------- */
+.app-mode-mobile .app-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(300px, 86vw);
+  min-width: 0;
+  height: 100dvh;
+  z-index: 400;
+  transform: translateX(-100%);
+  visibility: hidden; /* also removes the closed drawer from tab order / screen readers */
+  transition: transform 0.22s ease, visibility 0s linear 0.22s;
+}
+
+.app-mode-mobile.nav-open .app-sidebar {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.22s ease, visibility 0s;
+  box-shadow: 8px 0 30px rgba(15, 23, 42, 0.18);
+}
+
+.app-mode-mobile .sidebar-nav-item {
+  min-height: 48px;
+}
+
+.app-mode-mobile .sidebar-help-btn,
+.app-mode-mobile .user-logout-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.app-header-compact {
+  padding: 0 0.5rem 0 0.25rem;
+  gap: 0.25rem;
+}
+
+.app-header-compact .header-breadcrumbs {
+  flex: 1;
+}
+
+.app-header-compact .breadcrumb-separator,
+.app-header-compact .breadcrumb-active {
+  display: none;
+}
+
+.app-header-compact .breadcrumb-root {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.app-header-compact .header-actions {
+  gap: 0.35rem;
+}
+
+.app-header-compact .notif-header-btn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.header-more {
+  position: relative;
+}
+
+.header-more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 190px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.22);
+}
+
+.header-more-menu .notif-header-btn {
+  width: 100%;
+  min-height: 44px;
+  justify-content: flex-start;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 767px) {
+  .portal-container {
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-content-scroll {
+    padding: 12px;
+    border-right: none;
+  }
+
+  /* Notification dropdown: pin to the screen edges instead of the bell icon. */
+  .notif-dropdown-panel {
+    position: fixed !important;
+    top: 60px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 76px) !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .portal-container {
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-mode-mobile .app-sidebar,
+  .app-mode-mobile.nav-open .app-sidebar {
+    transition: none;
+  }
+
+  .app-nav-backdrop {
+    animation: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   4. Page building blocks (shared by several pages)
+   ----------------------------------------------------------------------------- */
+
+/* Page header: title block on the left, actions on the right; stacks on mobile.
+   Apply .rs-page-header to the row and .rs-actions to the button group. */
+.rs-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.rs-page-header > :first-child,
+.config-header-row > :first-child {
+  min-width: 0;
+}
+
+.rs-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.config-header-row {
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+@media (max-width: 767px) {
+  .config-content {
+    padding: 0;
+  }
+
+  /* !important so the utilities win over the inline flex styles many pages use. */
+  .rs-page-header,
+  .config-header-row,
+  .rs-stack-mobile {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .rs-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  .rs-stack-mobile > .form-input {
+    max-width: 100% !important;
+  }
+
+  .rs-actions > a,
+  .rs-actions > button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* The primary action leads when buttons stack. */
+  .rs-actions > .rs-primary {
+    order: -1;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .config-content {
+    padding: 0.75rem;
+  }
+}
+
+.rs-page-header.rs-align-start {
+  align-items: flex-start;
+}
+
+/* Segmented tabs / pill bars: scroll sideways inside themselves, never the page. */
+.rs-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rs-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.rs-tabs > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Main column + fixed aside (e.g. composer + preview). Aside drops below on tablet/mobile. */
+.rs-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.rs-split-aside-400 {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+.rs-sticky-desktop {
+  position: sticky;
+}
+
+/* Equal-column grids that collapse on small screens. */
+.rs-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.rs-grid > * {
+  min-width: 0;
+}
+
+.rs-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rs-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.rs-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1023px) {
+  .rs-split-aside-400 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rs-sticky-desktop {
+    position: static;
+  }
+}
+
+@media (max-width: 767px) {
+  .rs-page-header.rs-align-start {
+    align-items: stretch;
+  }
+
+  .rs-tabs {
+    width: 100%;
+  }
+
+  .rs-tabs > button {
+    min-height: 40px;
+  }
+
+  .rs-grid-2,
+  .rs-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rs-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Modals: near full-screen, never taller or wider than the viewport, content scrolls inside. */
+  .modal-backdrop,
+  .modal-overlay {
+    padding: 12px !important;
+  }
+
+  .modal-backdrop > *,
+  .modal-overlay > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Table that becomes a list of cards on mobile.
+   <table class="rs-card-table">; the title cell gets .rs-card-title, the row
+   menu cell .rs-card-actions, and every other cell data-label="Column name". */
+@media (max-width: 767px) {
+  .rs-card-table {
+    min-width: 0 !important;
+    table-layout: auto;
+    border-collapse: separate;
+  }
+
+  /* Column names move onto each cell via data-label, so the header row is not needed. */
+  .rs-card-table thead {
+    display: none;
+  }
+
+  .rs-card-table,
+  .rs-card-table tbody,
+  .rs-card-table tr,
+  .rs-card-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .rs-card-table tbody tr {
+    position: relative;
+    margin-bottom: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    background: #ffffff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+  }
+
+  .rs-card-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .rs-card-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.35rem 0 !important;
+    border: none !important;
+    text-align: right;
+    min-width: 0;
+  }
+
+  .rs-card-table td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-top: 0.15rem;
+  }
+
+  .rs-card-table td > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .rs-card-table td.rs-card-title {
+    display: block;
+    text-align: left;
+    padding: 0 3rem 0.4rem 0 !important;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  .rs-card-table td.rs-card-title * {
+    white-space: normal;
+  }
+
+  .rs-card-table td.rs-card-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    padding: 0 !important;
+  }
+
+  .rs-card-table td.rs-card-actions button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Card lists don't need the table's horizontal scroller (and it would clip menus). */
+  .products-table-wrapper {
+    overflow: visible;
+  }
+
+  .rs-card-table .table-desc-cell {
+    max-width: none;
+    text-align: right;
+  }
+}
+
+/* Card tables: cells may wrap (desktop cells often use nowrap/ellipsis inline), and a
+   .rs-card-footer cell holds the row's main action as a full-width button. */
+@media (max-width: 767px) {
+  .rs-card-table td {
+    white-space: normal !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  .rs-card-table td.rs-card-footer {
+    display: block;
+    padding-top: 0.5rem !important;
+    text-align: left;
+  }
+
+  .rs-card-table td.rs-card-footer > button,
+  .rs-card-table td.rs-card-footer > a {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .rs-card-table td.rs-card-title {
+    font-weight: 700;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   5. Shared utilities (rs-*)
+   Use these instead of page-specific media queries where possible.
+   ----------------------------------------------------------------------------- */
+
+/* Text that must wrap instead of overflowing (long names, emails, URLs). */
+.rs-wrap {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Horizontal scrolling stays inside this box, never on the page. */
+.rs-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .rs-hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .rs-show-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .rs-emoji-bar > button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* Few tabs that should all stay visible on mobile: 2-column grid instead of a scroller. */
+@media (max-width: 767px) {
+  .rs-tabs-grid-mobile {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-radius: 14px !important;
+    overflow: visible;
+  }
+
+  .rs-tabs-grid-mobile > button {
+    justify-content: center;
+    white-space: normal;
+  }
+}
+
+/* Form controls fill their container below desktop (textareas otherwise keep their
+   browser default width when they are not inside a .form-group). */
+@media (max-width: 1023px) {
+  textarea.form-input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .form-input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Collapse any (inline-styled) grid to one column: on mobile, or on tablet + mobile. */
+@media (max-width: 767px) {
+  .rs-collapse-mobile {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .rs-collapse-tablet {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   6. Page-specific adjustments
+   ----------------------------------------------------------------------------- */
+
+/* Team Access: table on tablet/desktop, cards on mobile (moved from an inline <style>). */
+@media (max-width: 767px) {
+  .team-access-desktop-table { display: none !important; }
+  .team-access-mobile-cards { display: flex !important; }
+
+  .staff-management-container {
+    padding: 0 !important;
+  }
+
+  .staff-page-header {
+    padding: 1rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .team-access-desktop-table { display: block !important; }
+  .team-access-mobile-cards { display: none !important; }
+}
+
+/* Rows keep the grid's minimum width so borders and hover states span the full scroll width.
+   = sum of the column minimums in StaffManagement.tsx (40 + 240 + 130 + 110 + 220 + 130 + 100px),
+   6 column gaps of 0.75rem, and the rows' 1rem side padding. */
+.team-access-desktop-table > div {
+  min-width: calc(970px + 6 * 0.75rem + 2rem);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .staff-management-container {
+    padding: 0.75rem !important;
+  }
+}
+
+/* WhatsApp Analytics */
+@media (max-width: 767px) {
+  .analytics-page-card {
+    padding: 0.85rem !important;
+  }
+
+  .analytics-date-range {
+    flex-wrap: wrap;
+  }
+
+  .analytics-date-range input[type="date"] {
+    flex: 1 1 120px;
+    min-width: 0;
+    min-height: 40px;
+  }
+
+  .analytics-search {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100%;
+    flex: 1 1 auto !important;
+  }
+
+  .analytics-search input {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  /* Recent messages become cards; give the list room instead of a 340px box. */
+  .analytics-log-scroll {
+    max-height: 70dvh !important;
+    border: none !important;
+    background: transparent !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Card cells with several pieces of content: label above, value below (left-aligned). */
+  .rs-card-table td.rs-cell-stack {
+    display: block;
+    text-align: left;
+  }
+
+  .rs-card-table td.rs-cell-stack::before {
+    display: block;
+    max-width: none;
+    margin-bottom: 0.2rem;
+  }
+
+  .rs-card-table td.rs-cell-stack > [style*="flex"] {
+    flex-wrap: wrap;
+  }
+
+  /* Tabs that share one row equally on mobile (labels may wrap). */
+  .rs-tabs-fill-mobile {
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    width: 100%;
+    overflow: visible;
+  }
+
+  .rs-tabs-fill-mobile > button {
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+    min-height: 40px;
+  }
+
+  /* Analytics date range: "From [date]" and "To [date]" as two aligned rows. */
+  .analytics-date-range {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    width: 100%;
+  }
+
+  .analytics-date-range > svg {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rs-actions > select,
+  .rs-actions > input {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .rs-actions > * {
+    margin-left: 0 !important;
+  }
+
+  /* Completed/cancelled demo cards have no actions; drop the empty divider row. */
+  .demo-card-actions:empty {
+    display: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   6b. Support Center: view-based navigation below desktop.
+   SupportCenter.tsx adds .view-list (no chat open) or .view-chat (chat open)
+   on tablet/mobile; desktop keeps the side-by-side list + chat.
+   ----------------------------------------------------------------------------- */
+.admin-chat-area.view-list,
+.admin-chat-area.view-chat {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-chat-area.view-list > .chat-window,
+.admin-chat-area.view-list > .chat-window-placeholder,
+.admin-chat-area.view-chat > .conversations-list-pane {
+  display: none;
+}
+
+/* List view flows with the page: one scroll, no nested scroll box. */
+.admin-chat-area.view-list {
+  height: auto;
+  overflow: visible;
+}
+
+.admin-chat-area.view-list .conversations-list-pane {
+  overflow: visible;
+  border-right: none;
+}
+
+/* Chat view fills the content area edge to edge; the stream scrolls inside. */
+.app-content-scroll.is-chat-view {
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-content-scroll.is-chat-view > .action-center-slot {
+  display: none;
+}
+
+.app-content-scroll.is-chat-view .admin-chat-area {
+  height: 100%;
+}
+
+.chat-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 40px;
+  margin-left: -0.35rem;
+  padding: 0 0.65rem 0 0.35rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-back-btn:hover {
+  background: var(--color-primary-tint);
+}
+
+.chat-back-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .chat-header {
+    padding: 0.45rem 0.75rem 0.6rem;
+  }
+
+  .chat-header-name,
+  .chat-meta-item {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-messages-stream {
+    padding: 0.85rem 0.75rem;
+  }
+
+  .admin-msg-bubble {
+    max-width: 85%;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-msg-bubble img,
+  .admin-msg-bubble video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+
+@media (max-width: 767px) {
+  /* Conversation rows: let status pills and the timestamp wrap on narrow phones. */
+  .row-meta {
+    flex-wrap: wrap;
+    row-gap: 0.3rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .pane-header {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   6c. Public website (landing / catalog)
+   ----------------------------------------------------------------------------- */
+/* Same 340px cards on desktop; never wider than the container on phones. */
+.public-products-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+}
+
+@media (max-width: 767px) {
+  .public-form-card-header {
+    flex-direction: column-reverse;
+    align-items: center;
+    text-align: center;
+    gap: 0.6rem;
+  }
+
+  .public-mobile-toggle {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .public-product-card {
+    min-width: 0;
+  }
+}
+
+/* Narrow phones: compact brand + header button, and a shorter country picker. */
+@media (max-width: 400px) {
+  .public-brand-subtitle {
+    display: none;
+  }
+
+  .public-brand-title {
+    font-size: 1rem;
+  }
+
+  .public-brand {
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .public-header-actions {
+    gap: 0.35rem;
+  }
+
+  .btn-staff-login-link,
+  .btn-staff-portal-link {
+    padding: 0.4rem 0.6rem;
+    white-space: nowrap;
+  }
+
+  .public-country-select {
+    min-width: 0;
+    width: 96px;
+    padding-left: 0.5rem;
+    padding-right: 0.25rem;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   6d. Mobile conversation screen (< 768px)
+   Mobile header + compact conversation header + message list (the only thing
+   that scrolls) + composer pinned at the bottom. SupportCenter.tsx renders
+   .chat-header-mobile instead of the desktop header on phones.
+   ----------------------------------------------------------------------------- */
+
+/* Size the app to the visible viewport (App.tsx sets --app-height from the
+   VisualViewport API), so the on-screen keyboard shrinks the layout instead of
+   covering the composer. */
+.app-layout-root.app-mode-mobile,
+.app-mode-mobile .app-main-viewport,
+.app-mode-mobile .app-sidebar {
+  height: var(--app-height, 100dvh);
+}
+
+.app-content-scroll.is-chat-view .chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-content-scroll.is-chat-view .admin-messages-stream {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.65rem 0.65rem 0.5rem;
+}
+
+.app-content-scroll.is-chat-view .chat-composer-container,
+.app-content-scroll.is-chat-view .chat-header-mobile,
+.app-content-scroll.is-chat-view .chat-delivery-warning {
+  flex-shrink: 0;
+}
+
+/* Compact Mobile Conversation Header (~60-72px total height) */
+.chat-header-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.3rem 0.65rem 0.45rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.chat-mobile-nav-bar {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
+.chat-header-mobile .chat-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  height: 24px;
+  padding: 0 0.4rem 0 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chat-header-mobile .chat-back-btn:hover {
+  background: var(--color-primary-tint);
+}
+
+.chat-mobile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.chat-mobile-card .chat-header-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  font-size: 0.92rem;
+  margin: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-mobile-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  justify-content: center;
+}
+
+.chat-mobile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.chat-mobile-name-row .chat-header-name {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-main);
+}
+
+.chat-mobile-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.chat-mobile-status.open {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.chat-mobile-status.closed {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.chat-mobile-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.chat-mobile-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.chat-mobile-product {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.chat-mobile-phone {
+  flex-shrink: 0;
+}
+
+.chat-mobile-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.chat-mobile-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.chat-mobile-live.is-live {
+  color: #16a34a;
+}
+
+.chat-mobile-live.is-offline {
+  color: #dc2626;
+}
+
+.chat-mobile-viewing {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #b45309;
+}
+
+.chat-mobile-claim {
+  align-self: center;
+  flex-shrink: 0;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chat-mobile-claim:disabled {
+  opacity: 0.6;
+}
+
+.chat-mobile-menu {
+  position: relative;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.chat-mobile-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+
+.chat-mobile-menu-btn:hover,
+.chat-mobile-menu-btn[aria-expanded="true"] {
+  background: var(--bg-main);
+}
+
+.chat-mobile-claim:focus-visible,
+.chat-mobile-menu-btn:focus-visible,
+.chat-mobile-menu-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.chat-mobile-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  min-width: 232px;
+  max-width: calc(100vw - 24px);
+  max-height: 60dvh;
+  overflow-y: auto;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.22);
+}
+
+.chat-mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-mobile-menu-item:hover {
+  background: var(--bg-main);
+}
+
+.chat-mobile-menu-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.chat-mobile-menu-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.chat-mobile-menu-back {
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 8px 8px 0 0;
+  color: var(--text-muted);
+}
+
+.chat-mobile-menu-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.chat-mobile-menu-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 8px 12px 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chat-mobile-menu-details-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chat-mobile-menu-details-value {
+  font-size: 0.76rem;
+  color: var(--text-sub);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  /* Internal notes open as a bottom sheet (staff only, separate from the chat). */
+  .notes-panel {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 8px;
+    z-index: 500;
+    width: auto;
+    max-width: none;
+    max-height: 70dvh;
+  }
+
+  /* Fixed/sticky bottom composer respecting safe area */
+  .chat-composer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.4rem 0.6rem calc(0.45rem + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  }
+
+  /* 24-hour window status row + action button */
+  .composer-utility-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .composer-utility-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .composer-status-notice {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .composer-utility-right {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-left: 0;
+    flex: 0 0 auto;
+  }
+
+  .composer-utility-right > button,
+  .composer-utility-right .btn-send-approved-action,
+  .composer-utility-right .btn-send-followup-template {
+    width: 100% !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    max-height: 34px !important;
+    flex: 0 0 34px !important;
+    padding: 0 0.75rem !important;
+    font-size: 0.78rem !important;
+    font-weight: 600;
+    justify-content: center;
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .composer-utility-right .btn-send-followup-template {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  /* Responsive message bubbles & media */
+  .admin-msg-bubble {
+    max-width: 85% !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .msg-body-text {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .msg-media-image-wrapper,
+  .msg-media-image {
+    max-width: 100%;
+    max-height: min(200px, 30dvh);
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .msg-media-video {
+    max-width: 100%;
+    max-height: min(200px, 30dvh);
+  }
+
+  .chat-date-separator {
+    margin: 0.5rem 0;
+  }
+
+  .chat-delivery-warning {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.35rem 0.5rem 0;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .chat-delivery-warning-text {
+    font-size: 0.74rem;
+  }
+
+  .btn-delivery-warning-action {
+    width: 100%;
+    justify-content: center;
+    min-height: 32px;
+  }
+
+  .app-content-scroll:not(.is-chat-view) {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Notched phones in landscape: keep content clear of the side insets (0 elsewhere). */
+.app-layout-root,
+.public-website-root,
+.standalone-auth-layout {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}

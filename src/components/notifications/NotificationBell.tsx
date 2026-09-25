@@ -233,9 +233,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser,
     <div ref={wrapperRef} style={{ position: 'relative' }}>
       <button
         type="button"
-        className="notif-header-btn"
+        className="notif-header-btn notif-bell-btn"
         onClick={handleToggleDropdown}
         title="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        aria-expanded={dropdownOpen}
         style={{ position: 'relative' }}
       >
         <Bell size={13} />
@@ -265,7 +267,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser,
 
       {dropdownOpen && (
         <div
-          className="glass-card"
+          className="glass-card notif-dropdown-panel"
           style={{
             position: 'absolute',
             right: 0,
