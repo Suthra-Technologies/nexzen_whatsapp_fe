@@ -311,8 +311,19 @@ export default function App() {
     const vv = window.visualViewport;
     if (breakpoint !== 'mobile' || !vv) return;
     const root = document.documentElement;
+    // Tallest visible height seen at the current width. A drop of 150px+ from it means the
+    // on-screen keyboard is open (browser toolbars only change it by ~50-60px); CSS then hides
+    // non-essential rows so the conversation keeps usable space while typing.
+    let fullHeight = 0;
+    let lastWidth = 0;
     const update = () => {
+      if (Math.round(vv.width) !== lastWidth) {
+        lastWidth = Math.round(vv.width);
+        fullHeight = 0; // orientation change: re-learn the full height
+      }
+      fullHeight = Math.max(fullHeight, vv.height);
       root.style.setProperty('--app-height', `${Math.round(vv.height)}px`);
+      root.toggleAttribute('data-keyboard-open', vv.height < fullHeight - 150);
       // iOS pans the page to reveal a focused input; keep the app pinned to the top instead.
       if (window.scrollY !== 0) window.scrollTo(0, 0);
     };
@@ -321,6 +332,7 @@ export default function App() {
     return () => {
       vv.removeEventListener('resize', update);
       root.style.removeProperty('--app-height');
+      root.removeAttribute('data-keyboard-open');
     };
   }, [breakpoint]);
 

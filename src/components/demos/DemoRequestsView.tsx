@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, CheckCircle2, Clock, RefreshCw, Settings, User, Video, XCircle } from 'lucide-react';
+import { Bell, Calendar, CheckCircle2, Clock, RefreshCw, Settings, User, Video, XCircle } from 'lucide-react';
 import { API_BASE } from '../../constants';
 import { wsService } from '../../services/websocket';
 import { ConversationNotes } from '../ConversationNotes';
@@ -532,6 +532,35 @@ export const DemoRequestsView: React.FC<DemoRequestsViewProps> = ({ currentUser,
                         </a>
                       </div>
                     )}
+                    {booking.status === 'confirmed' && (() => {
+                      // Automated 30-minute WhatsApp reminder (sent only via the approved template).
+                      const r = booking.reminder && booking.reminder.forStart === booking.requestedSlotStart ? booking.reminder : null;
+                      const view = !r
+                        ? { text: 'Scheduled · 30 min before', color: '#64748b' }
+                        : r.status === 'sent'
+                          ? { text: r.simulated ? 'Sent (test mode)' : 'Sent', color: '#15803d' }
+                          : r.status === 'sending'
+                            ? { text: 'Sending…', color: '#b45309' }
+                            : r.status === 'skipped'
+                              ? { text: 'Not needed', color: '#64748b' }
+                              : { text: 'Not sent', color: '#b91c1c' };
+                      return (
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' }}>WhatsApp Reminder</div>
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: view.color, fontWeight: 600 }}
+                            title={r?.sentAt ? `Sent ${new Date(r.sentAt).toLocaleString()}` : undefined}
+                          >
+                            <Bell size={13} aria-hidden="true" /> {view.text}
+                          </div>
+                          {r?.reason && (r.status === 'failed' || r.status === 'skipped') && (
+                            <div style={{ fontSize: '0.72rem', color: r.status === 'failed' ? '#b91c1c' : 'var(--text-muted)', marginTop: '2px', overflowWrap: 'anywhere' }}>
+                              {r.reason}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {actionErrorByBooking[booking.id] && (

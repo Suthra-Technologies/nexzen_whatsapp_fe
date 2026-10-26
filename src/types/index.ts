@@ -107,6 +107,8 @@ export interface MetaSettings {
   WHATSAPP_WABA_ID: string;
   WHATSAPP_VERIFY_TOKEN: string;
   WHATSAPP_WELCOME_TEMPLATE: string;
+  /** Approved template used for the automated 30-minute demo reminder. */
+  WHATSAPP_DEMO_REMINDER_TEMPLATE?: string;
   PORT?: string;
   MONGODB_URI?: string;
 }
@@ -241,8 +243,24 @@ export interface DemoBooking {
   googleEventId?: string | null;
   meetingUri?: string | null;
   declineReason?: string | null;
+  /** When the customer last received the full demo details (confirmation / reschedule). */
+  detailsSentAt?: string | null;
+  /** Result of the automated 30-minute WhatsApp reminder for `forStart`. */
+  reminder?: DemoReminder | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DemoReminder {
+  forStart: string;
+  status: 'sending' | 'sent' | 'failed' | 'skipped';
+  templateName?: string | null;
+  language?: string;
+  attemptedAt: string;
+  sentAt?: string;
+  messageId?: string | null;
+  simulated?: boolean;
+  reason?: string;
 }
 
 export interface DemoSettings {
@@ -261,6 +279,7 @@ export type NotificationType =
   | 'DEMO_CONFIRMED'
   | 'DEMO_RESCHEDULED'
   | 'DEMO_CANCELLED'
+  | 'DEMO_REMINDER_FAILED'
   | 'MESSAGE_FAILURE'
   | 'BROADCAST_COMPLETED'
   | 'BROADCAST_FAILURE'

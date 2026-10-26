@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
@@ -46,13 +46,19 @@ import {
   getSessionWindowRemaining
 } from '../utils/dateUtils';
 
-type StatusFilter = 'all' | 'open' | 'resolved' | 'failed';
+type StatusFilter = 'all' | 'open' | 'resolved' | 'failed' | 'failed_open' | 'unassigned';
 
 const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All Status',
   open: 'Open',
   resolved: 'Closed',
-  failed: 'Failed'
+  failed: 'Failed',
+  // The next two use the same rules as the dashboard attention items, so "Review" shows exactly
+  // the conversations the attention card counted.
+  // Not closed, and the latest message failed to deliver.
+  failed_open: 'Failed · Needs action',
+  // Open, customer is waiting for a reply (the list's "Waiting" indicator), nobody has claimed it.
+  unassigned: 'Waiting · Unassigned'
 };
 
 interface SupportCenterProps {
@@ -547,6 +553,24 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
   const [teamSearch, setTeamSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = React.useState('');
+
+  // "Review" on a dashboard attention item links to /support?filter=failed|unassigned: apply that
+  // filter across all teams, show the list (closing an open chat on tablet/phone), scroll to it,
+  // then drop the query so the URL doesn't keep re-applying it.
+  const location = useLocation();
+  React.useEffect(() => {
+    const requested = new URLSearchParams(location.search).get('filter') as StatusFilter | null;
+    if (!requested || !(requested in STATUS_FILTER_LABELS)) return;
+    setStatusFilter(requested);
+    setSearchQuery('');
+    setAdminProductFilter('all');
+    if (breakpoint !== 'desktop') setSelectedConversationId(null);
+    navigate(location.pathname, { replace: true });
+    requestAnimationFrame(() => {
+      document.querySelector('.conversations-list-pane')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
   const [expandedEventIds, setExpandedEventIds] = React.useState<Set<string>>(new Set());
 
   const toggleEventDetails = (id: string) => {
@@ -599,6 +623,11 @@ export const SupportCenter: React.FC<SupportCenterProps> = ({
         if (statusFilter === 'failed') return !!hasFailedMessage;
         if (statusFilter === 'open') return !hasFailedMessage && c.status === 'open';
         if (statusFilter === 'resolved') return !hasFailedMessage && c.status === 'resolved';
+        if (statusFilter === 'failed_open') return c.status !== 'resolved' && c.lastMessage?.status === 'failed';
+        if (statusFilter === 'unassigned') {
+          return c.status === 'open' && !hasFailedMessage && c.lastMessage?.sender === 'user' &&
+            !c.assignedAdminId && !c.assignedAdminName;
+        }
         return true;
       });
     }

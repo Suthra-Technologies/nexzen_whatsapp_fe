@@ -2325,6 +2325,7 @@ textarea {
 .composer-utility-right {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -2349,6 +2350,40 @@ textarea {
   background: rgba(37, 152, 0, 0.08);
   color: #1e7a00;
   border-color: rgba(37, 152, 0, 0.3);
+}
+
+/* Shown when the 24-hour window has expired: the recommended way to reopen it, so it gets the
+   green treatment, at the same size as "Send Approved Message" next to it. */
+.btn-send-followup-template {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-xs);
+  padding: 0.24rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #059669;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-send-followup-template:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.btn-send-followup-template:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-send-followup-template:focus-visible,
+.btn-send-approved-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .chat-composer-form {

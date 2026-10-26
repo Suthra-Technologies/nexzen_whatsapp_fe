@@ -1442,6 +1442,28 @@
   }
 }
 
+/* Keyboard open on a phone (App.tsx sets html[data-keyboard-open]): keep the header card,
+   the 24-hour window status and the input; hide rows that can wait until typing is done. */
+html[data-keyboard-open] .app-content-scroll.is-chat-view .chat-mobile-nav-bar,
+html[data-keyboard-open] .app-content-scroll.is-chat-view .chat-mobile-meta,
+html[data-keyboard-open] .app-content-scroll.is-chat-view .composer-utility-right,
+html[data-keyboard-open] .app-content-scroll.is-chat-view .chat-delivery-warning {
+  display: none;
+}
+
+/* The back button stays visually compact (24px) but its tap area grows into the free space
+   around it (header padding above, row gap below, extra width), without overlapping the
+   customer card or the app header. */
+.chat-header-mobile .chat-back-btn {
+  position: relative;
+}
+
+.chat-header-mobile .chat-back-btn::after {
+  content: '';
+  position: absolute;
+  inset: -5px -16px -3px -10px;
+}
+
 /* Notched phones in landscape: keep content clear of the side insets (0 elsewhere). */
 .app-layout-root,
 .public-website-root,

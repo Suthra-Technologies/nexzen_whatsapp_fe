@@ -26,7 +26,8 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
     WHATSAPP_PHONE_NUMBER_ID: '',
     WHATSAPP_WABA_ID: '',
     WHATSAPP_VERIFY_TOKEN: '',
-    WHATSAPP_WELCOME_TEMPLATE: ''
+    WHATSAPP_WELCOME_TEMPLATE: '',
+    WHATSAPP_DEMO_REMINDER_TEMPLATE: ''
   });
   const [activeMode, setActiveMode] = useState<'sandbox' | 'live'>(() => {
     return (localStorage.getItem('nexzen_active_meta_mode') as 'sandbox' | 'live') || 'live';
@@ -74,7 +75,8 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
             WHATSAPP_PHONE_NUMBER_ID: data.settings.WHATSAPP_PHONE_NUMBER_ID || '',
             WHATSAPP_WABA_ID: data.settings.WHATSAPP_WABA_ID || '',
             WHATSAPP_VERIFY_TOKEN: data.settings.WHATSAPP_VERIFY_TOKEN || 'pos_whatsapp_verify_token',
-            WHATSAPP_WELCOME_TEMPLATE: data.settings.WHATSAPP_WELCOME_TEMPLATE || 'nexzentek_service_welcome'
+            WHATSAPP_WELCOME_TEMPLATE: data.settings.WHATSAPP_WELCOME_TEMPLATE || 'nexzentek_service_welcome',
+            WHATSAPP_DEMO_REMINDER_TEMPLATE: data.settings.WHATSAPP_DEMO_REMINDER_TEMPLATE || 'demo_reminder'
           };
           setSettingsForm(formValues);
 
@@ -109,7 +111,8 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
         WHATSAPP_PHONE_NUMBER_ID: cached.WHATSAPP_PHONE_NUMBER_ID || '',
         WHATSAPP_WABA_ID: cached.WHATSAPP_WABA_ID || '',
         WHATSAPP_VERIFY_TOKEN: cached.WHATSAPP_VERIFY_TOKEN || 'pos_whatsapp_verify_token',
-        WHATSAPP_WELCOME_TEMPLATE: cached.WHATSAPP_WELCOME_TEMPLATE || 'nexzentek_service_welcome'
+        WHATSAPP_WELCOME_TEMPLATE: cached.WHATSAPP_WELCOME_TEMPLATE || 'nexzentek_service_welcome',
+        WHATSAPP_DEMO_REMINDER_TEMPLATE: cached.WHATSAPP_DEMO_REMINDER_TEMPLATE || 'demo_reminder'
       });
     }
     setActiveMode(mode);
@@ -574,6 +577,22 @@ export const TokensSettings: React.FC<TokensSettingsProps> = ({ getAuthHeaders }
                 required
               />
               <span className="field-hint">The Meta approved template name sent on customer registration</span>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label className="form-label">Demo Reminder Template (WHATSAPP_DEMO_REMINDER_TEMPLATE)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={settingsForm.WHATSAPP_DEMO_REMINDER_TEMPLATE || ''}
+                onChange={e => setSettingsForm(prev => ({ ...prev, WHATSAPP_DEMO_REMINDER_TEMPLATE: e.target.value }))}
+                placeholder="demo_reminder"
+              />
+              <span className="field-hint">
+                Approved template sent automatically 30 minutes before every confirmed demo. Variables, in order:
+                customer name, service, date, time, demo specialist, Google Meet link (or the same 5 without the
+                customer name). If it is missing or not approved, no reminder is sent and staff are notified.
+              </span>
             </div>
 
             <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>

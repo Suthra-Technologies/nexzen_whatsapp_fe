@@ -1,17 +1,23 @@
 import {
+  BadgePercent,
+  CalendarClock,
   CheckCircle,
   Clock,
   Eye,
   FileEdit,
   Gift,
   Megaphone,
+  MessageCircle,
   Plus,
   Send,
+  ShoppingBag,
   Sparkles,
   Tag,
+  TicketPercent,
   Trash2,
   Users,
-  X
+  X,
+  type LucideIcon
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { API_BASE } from '../../constants';
@@ -34,52 +40,54 @@ interface BroadcastsViewProps {
   onNavigateToSupport?: () => void;
 }
 
+// UI icons for the "Choose Message Type" cards (decorative; the label carries the meaning).
+// The emoji inside defaultText is part of the customer's WhatsApp message and stays as is.
 const MESSAGE_TYPES: Array<{
   id: BroadcastType;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   desc: string;
   defaultText: string;
 }> = [
   {
     id: 'promotional',
     label: 'Promotional Offer',
-    icon: '🎉',
+    icon: BadgePercent,
     desc: 'Seasonal promotions, discounts, and flash sales',
     defaultText: '🎉 Special Offer for you!\n\nHi [Customer Name] 👋\n\nEnjoy an exclusive 20% OFF on your next order.\nUse code: [Coupon Code]\n\nValid until the end of this month!'
   },
   {
     id: 'announcement',
     label: 'Announcement',
-    icon: '📢',
+    icon: Megaphone,
     desc: 'Company news, service updates, and new arrivals',
     defaultText: '📢 Exciting News!\n\nHi [Customer Name] 👋\n\nWe are thrilled to announce new services at [Product Name]. Check out our latest features today!'
   },
   {
     id: 'coupon',
     label: 'Coupon / Discount',
-    icon: '🎁',
+    icon: TicketPercent,
     desc: 'Reward loyal customers with targeted voucher codes',
     defaultText: '🎁 Special Gift For You!\n\nHi [Customer Name] 👋\n\nHere is your personal discount voucher: [Coupon Code]\n\nSave on your next service or product booking with [Product Name].'
   },
   {
     id: 'product_offer',
     label: 'Product Offer',
-    icon: '🛍️',
+    icon: ShoppingBag,
     desc: 'Spotlight a specific product or premium package',
     defaultText: '🛍️ Featured Package Spotlight!\n\nHi [Customer Name] 👋\n\nLooking to upgrade? Explore premium options at [Product Name]. Let our team know if you have questions!'
   },
   {
     id: 'event_reminder',
     label: 'Event / Reminder',
-    icon: '📅',
+    icon: CalendarClock,
     desc: 'Remind customers of upcoming events or bookings',
     defaultText: '📅 Upcoming Reminder\n\nHi [Customer Name] 👋\n\nThis is a friendly reminder from [Product Name]. We look forward to seeing you soon!'
   },
   {
     id: 'customer_update',
     label: 'Customer Update',
-    icon: '💬',
+    icon: MessageCircle,
     desc: 'Account updates, maintenance, and helpful information',
     defaultText: '💬 Important Customer Update\n\nHi [Customer Name] 👋\n\nWe have updated our service portal at [Product Name] to serve you even faster.'
   }
@@ -603,6 +611,7 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
               }}>
                 {MESSAGE_TYPES.map(m => {
                   const isSelected = messageType === m.id;
+                  const Icon = m.icon;
                   return (
                     <div
                       key={m.id}
@@ -616,15 +625,34 @@ export const BroadcastsView: React.FC<BroadcastsViewProps> = ({
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.2rem' }}>
-                        <span style={{ fontSize: '1.1rem' }}>{m.icon}</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                          {m.label}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                        {/* Neutral icon tile; green only for the selected type (matches its border). */}
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            flexShrink: 0,
+                            width: 40,
+                            height: 40,
+                            borderRadius: '10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: isSelected ? 'rgba(16, 185, 129, 0.12)' : '#f1f5f9',
+                            color: isSelected ? '#059669' : '#475569',
+                            transition: 'background-color 0.15s ease, color 0.15s ease'
+                          }}
+                        >
+                          <Icon size={24} strokeWidth={1.75} />
                         </span>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.15rem' }}>
+                            {m.label}
+                          </span>
+                          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>
+                            {m.desc}
+                          </p>
+                        </div>
                       </div>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>
-                        {m.desc}
-                      </p>
                     </div>
                   );
                 })}
